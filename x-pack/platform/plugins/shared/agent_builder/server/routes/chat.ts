@@ -51,24 +51,20 @@ export function registerChatRoutes({
       },
     }),
     connector_id: schema.maybe(
-      schema.nullable(
-        schema.string({
-          meta: {
-            description:
-              'Optional connector ID for the agent to use for model routing. Mutually exclusive with `inference_id`; omit or use only one.',
-          },
-        })
-      )
+      schema.string({
+        meta: {
+          description:
+            'Optional connector ID for the agent to use for model routing. Mutually exclusive with `inference_id`; omit or use only one.',
+        },
+      })
     ),
     inference_id: schema.maybe(
-      schema.nullable(
-        schema.string({
-          meta: {
-            description:
-              'Optional inference endpoint ID for model routing (public alias for the same internal identifier as `connector_id`). Mutually exclusive with `connector_id`.',
-          },
-        })
-      )
+      schema.string({
+        meta: {
+          description:
+            'Optional inference endpoint ID for model routing (public alias for the same internal identifier as `connector_id`). Mutually exclusive with `connector_id`.',
+        },
+      })
     ),
     conversation_id: schema.maybe(
       schema.string({
