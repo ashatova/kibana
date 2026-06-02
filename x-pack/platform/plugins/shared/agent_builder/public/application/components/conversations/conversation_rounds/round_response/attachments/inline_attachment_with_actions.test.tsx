@@ -10,9 +10,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import {
   ActionButtonType,
   type AttachmentRenderProps,
+  type GetActionButtonsParams,
   type InlineRenderCallbacks,
 } from '@kbn/agent-builder-browser/attachments';
 import type { UnknownAttachment } from '@kbn/agent-builder-common/attachments';
+import { AGENT_BUILDER_EVENT_TYPES } from '@kbn/agent-builder-common';
 import type { AttachmentsService } from '../../../../../../services/attachments/attachements_service';
 import { InlineAttachmentWithActions } from './inline_attachment_with_actions';
 
@@ -20,6 +22,7 @@ const mockOpenCanvas = jest.fn();
 const mockSetPreviewedAttachmentKey = jest.fn();
 const mockInvalidateConversation = jest.fn();
 const mockOpenSidebarConversation = jest.fn();
+const mockReportEvent = jest.fn();
 
 jest.mock('./canvas_context', () => ({
   getAttachmentPreviewKey: (attachmentId: string, version?: number) =>
@@ -40,6 +43,14 @@ jest.mock('../../../../../context/conversation/conversation_context', () => ({
 jest.mock('../../../../../hooks/use_agent_builder_service', () => ({
   useAgentBuilderServices: () => ({
     openSidebarConversation: mockOpenSidebarConversation,
+  }),
+}));
+
+jest.mock('../../../../../hooks/use_kibana', () => ({
+  useKibana: () => ({
+    services: {
+      analytics: { reportEvent: mockReportEvent },
+    },
   }),
 }));
 
@@ -176,6 +187,154 @@ describe('InlineAttachmentWithActions', () => {
       // The inline trigger is still rendered, but clicking it is a no-op.
       fireEvent.click(screen.getByRole('button', { name: INLINE_TRIGGER }));
       expect(mockOpenSidebarConversation).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('attachment preview open tracking', () => {
+    const OPEN_PREVIEW_TRIGGER = 'open-preview';
+
+    const renderWithOpenPreviewButton = ({ isSidebar }: { isSidebar: boolean }) => {
+      const attachment: UnknownAttachment = { id: 'attachment-1', type: 'visualization', data: {} };
+      const attachmentsService = {
+        getAttachmentUiDefinition: jest.fn().mockReturnValue({
+          getLabel: () => 'Visualization',
+          renderInlineContent: () => <div>Inline content</div>,
+          getActionButtons: ({ openCanvas }: GetActionButtonsParams) => [
+            {
+              label: OPEN_PREVIEW_TRIGGER,
+              type: ActionButtonType.PRIMARY,
+              handler: openCanvas,
+            },
+          ],
+        }),
+        updateOrigin: jest.fn(),
+      };
+
+      render(
+        <InlineAttachmentWithActions
+          attachment={attachment}
+          attachmentsService={attachmentsService as unknown as AttachmentsService}
+          conversationId="conversation-1"
+          isSidebar={isSidebar}
+        />
+      );
+    };
+
+    it('reports ATTACHMENT_PREVIEW_OPEN with attachment type and fullscreen context', () => {
+      renderWithOpenPreviewButton({ isSidebar: false });
+
+      fireEvent.click(screen.getByRole('button', { name: OPEN_PREVIEW_TRIGGER }));
+
+      expect(mockReportEvent).toHaveBeenCalledWith(AGENT_BUILDER_EVENT_TYPES.UiClick, {
+        ebt_element: 'agentBuilder.pageContent',
+        ebt_action: 'attachment_preview_open',
+        ebt_detail: 'visualization:fullscreen',
+        element_kind: 'button',
+      });
+      expect(mockOpenCanvas).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports ATTACHMENT_PREVIEW_OPEN with sidebar context when rendered in sidebar', () => {
+      renderWithOpenPreviewButton({ isSidebar: true });
+
+      fireEvent.click(screen.getByRole('button', { name: OPEN_PREVIEW_TRIGGER }));
+
+      expect(mockReportEvent).toHaveBeenCalledWith(AGENT_BUILDER_EVENT_TYPES.UiClick, {
+        ebt_element: 'agentBuilder.pageContent',
+        ebt_action: 'attachment_preview_open',
+        ebt_detail: 'visualization:sidebar',
+        element_kind: 'button',
+      });
+    });
+  });
+
+  describe('attachment action click tracking', () => {
+    const SECONDARY_BUTTON = 'Edit query';
+    const PRIMARY_BUTTON = 'Run analysis';
+    const OVERFLOW_BUTTON = 'Export as CSV';
+    const actionHandler = jest.fn();
+
+    const renderWithActionButtons = () => {
+      const attachment: UnknownAttachment = { id: 'attachment-1', type: 'esql', data: {} };
+      const attachmentsService = {
+        getAttachmentUiDefinition: jest.fn().mockReturnValue({
+          getLabel: () => 'ES|QL',
+          renderInlineContent: () => <div>Inline content</div>,
+          getActionButtons: () => [
+            {
+              label: SECONDARY_BUTTON,
+              type: ActionButtonType.SECONDARY,
+              handler: actionHandler,
+            },
+            {
+              label: PRIMARY_BUTTON,
+              type: ActionButtonType.PRIMARY,
+              handler: actionHandler,
+            },
+            {
+              label: OVERFLOW_BUTTON,
+              type: ActionButtonType.OVERFLOW,
+              handler: actionHandler,
+            },
+          ],
+        }),
+        updateOrigin: jest.fn(),
+      };
+
+      render(
+        <InlineAttachmentWithActions
+          attachment={attachment}
+          attachmentsService={attachmentsService as unknown as AttachmentsService}
+          conversationId="conversation-1"
+          isSidebar={false}
+        />
+      );
+    };
+
+    it('reports ATTACHMENT_ACTION_CLICK with normalized label and attachment type for a secondary button', () => {
+      renderWithActionButtons();
+
+      fireEvent.click(screen.getByRole('button', { name: SECONDARY_BUTTON }));
+
+      expect(mockReportEvent).toHaveBeenCalledWith(AGENT_BUILDER_EVENT_TYPES.UiClick, {
+        ebt_element: 'agentBuilder.pageContent',
+        ebt_action: 'attachment_action_click',
+        ebt_detail: 'edit_query:esql',
+        element_kind: 'button',
+      });
+      expect(actionHandler).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports ATTACHMENT_ACTION_CLICK with normalized label and attachment type for a primary button', () => {
+      renderWithActionButtons();
+
+      fireEvent.click(screen.getByRole('button', { name: PRIMARY_BUTTON }));
+
+      expect(mockReportEvent).toHaveBeenCalledWith(AGENT_BUILDER_EVENT_TYPES.UiClick, {
+        ebt_element: 'agentBuilder.pageContent',
+        ebt_action: 'attachment_action_click',
+        ebt_detail: 'run_analysis:esql',
+        element_kind: 'button',
+      });
+      expect(actionHandler).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports ATTACHMENT_ACTION_CLICK for an overflow button clicked from the context menu', async () => {
+      renderWithActionButtons();
+
+      // Open the overflow popover first
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+
+      // Click the overflow item inside the context menu (EuiContextMenuItem renders as role="menuitem")
+      fireEvent.click(await screen.findByRole('menuitem', { name: OVERFLOW_BUTTON }));
+
+      expect(mockReportEvent).toHaveBeenCalledWith(AGENT_BUILDER_EVENT_TYPES.UiClick, {
+        ebt_element: 'agentBuilder.pageContent',
+        ebt_action: 'attachment_action_click',
+        ebt_detail: 'export_as_csv:esql',
+        element_kind: 'button',
+      });
+      expect(actionHandler).toHaveBeenCalledTimes(1);
     });
   });
 });

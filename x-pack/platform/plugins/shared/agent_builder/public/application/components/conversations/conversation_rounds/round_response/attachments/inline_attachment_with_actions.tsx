@@ -10,12 +10,14 @@ import type {
   UnknownAttachment,
   ScreenContextAttachmentData,
 } from '@kbn/agent-builder-common/attachments';
+import { AGENT_BUILDER_EVENT_TYPES, AGENT_BUILDER_UI_EBT } from '@kbn/agent-builder-common';
 import type { ActionButton, AttachmentPreviewState } from '@kbn/agent-builder-browser/attachments';
 import { EuiSplitPanel } from '@elastic/eui';
 import { css } from '@emotion/react';
 import type { AttachmentsService } from '../../../../../../services/attachments/attachements_service';
 import { useConversationContext } from '../../../../../context/conversation/conversation_context';
 import { useAgentBuilderServices } from '../../../../../hooks/use_agent_builder_service';
+import { useKibana } from '../../../../../hooks/use_kibana';
 import { AttachmentHeader } from './attachment_header';
 import { getAttachmentPreviewKey, useCanvasContext } from './canvas_context';
 
@@ -50,10 +52,19 @@ export const InlineAttachmentWithActions: React.FC<InlineAttachmentWithActionsPr
   } = useCanvasContext();
   const { conversationActions } = useConversationContext();
   const { openSidebarConversation: openSidebarConversationInternal } = useAgentBuilderServices();
+  const {
+    services: { analytics },
+  } = useKibana();
 
   const openCanvas = useCallback(() => {
+    analytics.reportEvent(AGENT_BUILDER_EVENT_TYPES.UiClick, {
+      ebt_element: AGENT_BUILDER_UI_EBT.element.pageContent,
+      ebt_action: AGENT_BUILDER_UI_EBT.action.conversation.ATTACHMENT_PREVIEW_OPEN,
+      ebt_detail: `${attachment.type}:${isSidebar ? 'sidebar' : 'fullscreen'}`,
+      element_kind: 'button',
+    });
     openCanvasContext(attachment, isSidebar);
-  }, [openCanvasContext, attachment, isSidebar]);
+  }, [analytics, openCanvasContext, attachment, isSidebar]);
 
   const updateOrigin = useCallback(
     async (origin: string) => {
@@ -146,6 +157,7 @@ export const InlineAttachmentWithActions: React.FC<InlineAttachmentWithActionsPr
         actionButtons={inlineActionButtons}
         previewBadgeState={resolvedPreviewBadgeState}
         onClosePreview={closeCanvas}
+        attachmentType={attachment.type}
       />
       <EuiSplitPanel.Inner grow={false} paddingSize="none">
         {uiDefinition?.renderInlineContent?.(

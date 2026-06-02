@@ -58,6 +58,8 @@ interface AttachmentHeaderProps {
    * - previewing: show "Close preview" button and hide action buttons
    */
   previewBadgeState?: 'none' | 'preview_available' | 'previewing';
+  /** Attachment type forwarded to action buttons for EBT tracking (e.g. "visualization", "esql"). */
+  attachmentType?: string;
 }
 
 export const COMPACT_WIDTH_THRESHOLD = 560;
@@ -71,6 +73,7 @@ export const AttachmentHeader: React.FC<AttachmentHeaderProps> = ({
   onClose,
   onClosePreview,
   previewBadgeState = 'none',
+  attachmentType,
 }) => {
   const { euiTheme } = useEuiTheme();
 
@@ -203,7 +206,11 @@ export const AttachmentHeader: React.FC<AttachmentHeaderProps> = ({
             <EuiFlexGroup gutterSize="xs" alignItems="center" responsive={false}>
               {previewBadgeState !== 'previewing' && hasActionButtons && (
                 <EuiFlexItem grow={false}>
-                  <AttachmentActions buttons={actionButtons} iconOnly={isCompact} />
+                  <AttachmentActions
+                    buttons={actionButtons}
+                    iconOnly={isCompact}
+                    attachmentType={attachmentType}
+                  />
                 </EuiFlexItem>
               )}
               {previewBadgeState === 'previewing' && (

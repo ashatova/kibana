@@ -18,17 +18,25 @@ import {
 } from '@elastic/eui';
 import { i18n } from '@kbn/i18n';
 import { type ActionButton, ActionButtonType } from '@kbn/agent-builder-browser/attachments';
+import { AGENT_BUILDER_EVENT_TYPES, AGENT_BUILDER_UI_EBT } from '@kbn/agent-builder-common';
+import { useKibana } from '../../../../../hooks/use_kibana';
 
 interface AttachmentActionsProps {
   buttons: ActionButton[];
   iconOnly?: boolean;
+  /** Attachment type string (e.g. "visualization", "esql") included in the EBT detail. */
+  attachmentType?: string;
 }
 
 export const AttachmentActions: React.FC<AttachmentActionsProps> = ({
   buttons,
   iconOnly = false,
+  attachmentType,
 }) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const {
+    services: { analytics },
+  } = useKibana();
 
   const secondaryButtons = buttons.filter((b) => b.type === ActionButtonType.SECONDARY);
   const primaryButtons = buttons.filter((b) => b.type === ActionButtonType.PRIMARY);
@@ -41,6 +49,19 @@ export const AttachmentActions: React.FC<AttachmentActionsProps> = ({
   const closePopover = useCallback(() => {
     setIsPopoverOpen(false);
   }, []);
+
+  const trackActionClick = useCallback(
+    (button: ActionButton) => {
+      const normalizedLabel = button.label.toLowerCase().replace(/\s+/g, '_');
+      analytics.reportEvent(AGENT_BUILDER_EVENT_TYPES.UiClick, {
+        ebt_element: AGENT_BUILDER_UI_EBT.element.pageContent,
+        ebt_action: AGENT_BUILDER_UI_EBT.action.conversation.ATTACHMENT_ACTION_CLICK,
+        ebt_detail: `${normalizedLabel}:${attachmentType ?? 'unknown'}`,
+        element_kind: 'button',
+      });
+    },
+    [analytics, attachmentType]
+  );
 
   const maybeWrapWithTooltip = useCallback((button: ActionButton, element: React.ReactElement) => {
     if (!button.disabled || !button.disabledReason) {
@@ -62,7 +83,10 @@ export const AttachmentActions: React.FC<AttachmentActionsProps> = ({
     href: button.href,
     target: button.href && button.openInNewTab ? '_blank' : undefined,
     rel: button.href && button.openInNewTab ? 'noopener noreferrer' : undefined,
-    onClick: button.handler,
+    onClick: () => {
+      trackActionClick(button);
+      button.handler();
+    },
   });
 
   return (
@@ -165,6 +189,7 @@ export const AttachmentActions: React.FC<AttachmentActionsProps> = ({
                     target: button.href && button.openInNewTab ? '_blank' : undefined,
                     rel: button.href && button.openInNewTab ? 'noopener noreferrer' : undefined,
                     onClick: () => {
+                      trackActionClick(button);
                       closePopover();
                       button.handler();
                     },
