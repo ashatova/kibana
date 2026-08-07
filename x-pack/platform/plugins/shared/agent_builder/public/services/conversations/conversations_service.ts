@@ -14,6 +14,7 @@ import type {
 import type {
   ListConversationsResponse,
   DeleteConversationResponse,
+  MarkPinnedConversationResponse,
   MarkReadConversationResponse,
   RenameConversationResponse,
 } from '../../../common/http_api/conversations';
@@ -73,6 +74,19 @@ export class ConversationsService {
     return await this.http.post<MarkReadConversationResponse>(
       `${internalApiPath}/conversations/${conversationId}/_mark_read`,
       { body: JSON.stringify({ read }) }
+    );
+  }
+
+  async updatePinnedStatus({
+    conversationId,
+    pinned,
+  }: {
+    conversationId: string;
+    pinned: boolean;
+  }): Promise<MarkPinnedConversationResponse> {
+    return await this.http.post<MarkPinnedConversationResponse>(
+      `${internalApiPath}/conversations/${conversationId}/_set_pinned`,
+      { body: JSON.stringify({ pinned }) }
     );
   }
 
