@@ -117,18 +117,15 @@ export const createModelProvider = ({
   });
 
   const getFastModelConnectorId = memoizeAsync(async () => {
-    const { endpoints, soEntryFound } = await searchInferenceEndpoints.endpoints.getForFeature(
+    const { endpoints } = await searchInferenceEndpoints.endpoints.getForFeature(
       AGENT_BUILDER_FAST_INFERENCE_FEATURE_ID,
       request
     );
 
-    if (soEntryFound && endpoints.length > 0) {
+    // getForFeature already returns endpoints in priority order (SO override → EIS recommended
+    // → global default), so endpoints[0] is always the best available fast model.
+    if (endpoints.length > 0) {
       return endpoints[0].connectorId;
-    }
-
-    const recommended = endpoints.find((endpoint) => endpoint.isRecommended);
-    if (recommended) {
-      return recommended.connectorId;
     }
 
     const fallbackId = await getDefaultConnectorId();
@@ -219,9 +216,8 @@ export const createModelProvider = ({
       getFastModelConnectorId(),
       getDefaultConnectorId(),
     ]);
-    // getFastModelConnectorId falls back to the default connector when no fast endpoint is
-    // configured (no SO override, no EIS recommended endpoint), so a distinct id means a
-    // genuinely dedicated (cheaper/faster) fast model exists.
+    // getFastModelConnectorId falls back to the default connector only when getForFeature
+    // returns no endpoints at all — a distinct id means a genuinely dedicated fast model.
     return fastConnectorId !== resolvedDefaultConnectorId;
   });
 
