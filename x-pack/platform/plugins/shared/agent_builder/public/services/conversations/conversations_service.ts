@@ -8,6 +8,7 @@
 import { type HttpSetup, buildPath } from '@kbn/core-http-browser';
 import type { FeedbackChipId } from '@kbn/agent-builder-common';
 import type {
+  CreateConversationResponse,
   AddConversationEventsRequestBody,
   AddConversationEventsResponse,
   CreateConversationResponse,
