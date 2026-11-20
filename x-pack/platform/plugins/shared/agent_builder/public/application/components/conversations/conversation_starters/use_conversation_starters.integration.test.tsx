@@ -87,6 +87,19 @@ describe('useConversationStarters with the real agent hooks', () => {
     expect(get).toHaveBeenCalledWith('agent-1');
   });
 
+  it('shows the starters of the app for an agent without starters', async () => {
+    jest.mocked(useConversationContext).mockReturnValue({
+      sessionTag: 'tag',
+      conversationStarters: [{ label: 'App starter' }],
+    } as never);
+    list.mockResolvedValue([{ id: 'agent-1', name: 'Agent' }]);
+    get.mockResolvedValue({ id: 'agent-1', name: 'Agent' });
+
+    const { result } = renderHook(() => useConversationStarters(), { wrapper });
+
+    await waitFor(() => expect(result.current.starters).toEqual([{ label: 'App starter' }]));
+  });
+
   it('shows nothing for an agent without starters', async () => {
     list.mockResolvedValue([{ id: 'agent-1', name: 'Agent' }]);
     get.mockResolvedValue({ id: 'agent-1', name: 'Agent' });

@@ -19,8 +19,9 @@ import type { TakeInputDraft } from '../conversation_input/conversation_input';
 import { resolveConversationStarters } from './resolve_conversation_starters';
 
 /**
- * The starters to show for the selected agent, and how to send one. Nothing is returned while the
- * agent loads or when the user can't run it, so starters never appear for an input that can't send.
+ * The starters to show, and how to send one: those the app passed in its chat config, or else those
+ * of the selected agent. Nothing is returned while the agent loads or when the user can't run it,
+ * so starters never appear for an input that can't send.
  */
 export const useConversationStarters = ({
   isInputUploading = false,
@@ -34,7 +35,7 @@ export const useConversationStarters = ({
   const { agent, agentExists, isBoundAgentForbidden, isAgentModelLoading } =
     useAgentSendState(agentId);
   const spaceId = useActiveSpaceId();
-  const { sessionTag } = useConversationContext();
+  const { sessionTag, conversationStarters: appStarters } = useConversationContext();
   const { currentUser } = useCurrentUser();
   const { takeNewChatDraft, saveDraftTo } = useCarryOverDraft({
     spaceId,
@@ -47,8 +48,8 @@ export const useConversationStarters = ({
   const agentStarters = agent?.conversation_starters;
 
   const starters = useMemo(
-    () => (canSend ? resolveConversationStarters({ agentStarters }) : []),
-    [canSend, agentStarters]
+    () => (canSend ? resolveConversationStarters({ appStarters, agentStarters }) : []),
+    [canSend, appStarters, agentStarters]
   );
 
   const onSelect = useCallback(

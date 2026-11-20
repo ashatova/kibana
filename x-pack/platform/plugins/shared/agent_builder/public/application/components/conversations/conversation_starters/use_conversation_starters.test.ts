@@ -79,6 +79,69 @@ describe('useConversationStarters', () => {
     expect(result.current.starters).toEqual([{ label: 'first' }, { label: 'second' }]);
   });
 
+  describe('when the app passes starters in its chat config', () => {
+    const mockAppStarters = (conversationStarters?: Array<{ label: string }>) => {
+      mockUseConversationContext.mockReturnValue({
+        sessionTag: 'tag',
+        conversationStarters,
+      } as never);
+    };
+
+    it('returns the starters of the app instead of those of the agent', () => {
+      mockAppStarters([{ label: 'app 1' }]);
+
+      const { result } = renderHook(() => useConversationStarters());
+
+      expect(result.current.starters).toEqual([{ label: 'app 1' }]);
+    });
+
+    it('returns the starters of the app for an agent that has none', () => {
+      mockSendState({ agent: { id: 'agent-1' } as never });
+      mockAppStarters([{ label: 'app 1' }, { label: 'app 2' }]);
+
+      const { result } = renderHook(() => useConversationStarters());
+
+      expect(result.current.starters).toEqual([{ label: 'app 1' }, { label: 'app 2' }]);
+    });
+
+    it('returns the starters of the agent when the app passes an empty list', () => {
+      mockAppStarters([]);
+
+      const { result } = renderHook(() => useConversationStarters());
+
+      expect(result.current.starters).toEqual([{ label: 'first' }, { label: 'second' }]);
+    });
+
+    it('returns no starters when the agent does not exist', () => {
+      mockSendState({ agentExists: false });
+      mockAppStarters([{ label: 'app 1' }]);
+
+      const { result } = renderHook(() => useConversationStarters());
+
+      expect(result.current.starters).toEqual([]);
+    });
+
+    it('returns no starters when the agent is bound and the user cannot invoke it', () => {
+      mockSendState({ isBoundAgentForbidden: true });
+      mockAppStarters([{ label: 'app 1' }]);
+
+      const { result } = renderHook(() => useConversationStarters());
+
+      expect(result.current.starters).toEqual([]);
+    });
+
+    it('sends the label of a starter of the app as the message', () => {
+      mockAppStarters([{ label: 'app 1' }]);
+      const { result } = renderHook(() => useConversationStarters());
+
+      act(() => {
+        result.current.onSelect({ label: 'app 1' });
+      });
+
+      expect(submitMessage).toHaveBeenCalledWith('app 1', expect.any(Object));
+    });
+  });
+
   it('returns no starters while the agent is not found yet', () => {
     mockSendState({ agent: undefined });
 

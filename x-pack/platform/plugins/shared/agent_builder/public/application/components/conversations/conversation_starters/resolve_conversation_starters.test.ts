@@ -33,6 +33,54 @@ describe('resolveConversationStarters', () => {
     ).toEqual(labels('a', 'b'));
   });
 
+  describe('with starters of the app', () => {
+    it('shows the starters of the app instead of those of the agent', () => {
+      expect(
+        resolveConversationStarters({
+          appStarters: labels('app 1', 'app 2'),
+          agentStarters: labels('agent 1', 'agent 2', 'agent 3'),
+        })
+      ).toEqual(labels('app 1', 'app 2'));
+    });
+
+    it('does not fill the remaining slots with the starters of the agent', () => {
+      expect(
+        resolveConversationStarters({
+          appStarters: labels('app 1'),
+          agentStarters: labels('agent 1', 'agent 2'),
+        })
+      ).toEqual(labels('app 1'));
+    });
+
+    it('uses the starters of the agent when the app passes an empty list', () => {
+      expect(
+        resolveConversationStarters({ appStarters: [], agentStarters: labels('agent 1') })
+      ).toEqual(labels('agent 1'));
+    });
+
+    it('uses the starters of the agent when none of the app starters has a label', () => {
+      expect(
+        resolveConversationStarters({
+          appStarters: labels('', '   '),
+          agentStarters: labels('agent 1'),
+        })
+      ).toEqual(labels('agent 1'));
+    });
+
+    it('trims, deduplicates and caps the starters of the app', () => {
+      expect(
+        resolveConversationStarters({
+          appStarters: labels(' 1 ', '1', '2', '', '3', '4'),
+          agentStarters: labels('agent 1'),
+        })
+      ).toEqual(labels('1', '2', '3'));
+    });
+
+    it('returns nothing when neither the app nor the agent has starters', () => {
+      expect(resolveConversationStarters({ appStarters: [], agentStarters: [] })).toEqual([]);
+    });
+  });
+
   it('keeps at most three starters', () => {
     expect(resolveConversationStarters({ agentStarters: labels('1', '2', '3', '4', '5') })).toEqual(
       labels('1', '2', '3')
