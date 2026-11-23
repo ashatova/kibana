@@ -47,8 +47,11 @@ export const useConversationStarters = ({
   const canSend = agentExists && !isBoundAgentForbidden;
   const agentStarters = agent?.conversation_starters;
 
-  const starters = useMemo(
-    () => (canSend ? resolveConversationStarters({ appStarters, agentStarters }) : []),
+  const { starters, source } = useMemo(
+    () =>
+      canSend
+        ? resolveConversationStarters({ appStarters, agentStarters })
+        : { starters: [], source: 'agent' as const },
     [canSend, appStarters, agentStarters]
   );
 
@@ -70,6 +73,7 @@ export const useConversationStarters = ({
 
   return {
     starters,
+    source,
     onSelect,
     isDisabled: isCreatingConversation || isAgentModelLoading || isInputUploading,
   };

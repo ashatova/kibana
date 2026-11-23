@@ -95,6 +95,22 @@ describe('useConversationStarters', () => {
       expect(result.current.starters).toEqual([{ label: 'app 1' }]);
     });
 
+    it('reports the app as the source of its starters', () => {
+      mockAppStarters([{ label: 'app 1' }]);
+
+      const { result } = renderHook(() => useConversationStarters());
+
+      expect(result.current.source).toBe('app');
+    });
+
+    it('reports the agent as the source when the app passes none', () => {
+      mockAppStarters(undefined);
+
+      const { result } = renderHook(() => useConversationStarters());
+
+      expect(result.current.source).toBe('agent');
+    });
+
     it('returns the starters of the app for an agent that has none', () => {
       mockSendState({ agent: { id: 'agent-1' } as never });
       mockAppStarters([{ label: 'app 1' }, { label: 'app 2' }]);

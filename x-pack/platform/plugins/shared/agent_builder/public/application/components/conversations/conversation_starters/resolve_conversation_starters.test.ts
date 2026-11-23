@@ -11,25 +11,29 @@ const labels = (...values: string[]) => values.map((label) => ({ label }));
 
 describe('resolveConversationStarters', () => {
   it('returns the agent starters', () => {
-    expect(resolveConversationStarters({ agentStarters: labels('a', 'b') })).toEqual(
-      labels('a', 'b')
-    );
+    expect(resolveConversationStarters({ agentStarters: labels('a', 'b') })).toEqual({
+      starters: labels('a', 'b'),
+      source: 'agent',
+    });
   });
 
   it('returns an empty list when the agent has no starters', () => {
-    expect(resolveConversationStarters({})).toEqual([]);
-    expect(resolveConversationStarters({ agentStarters: [] })).toEqual([]);
+    expect(resolveConversationStarters({})).toEqual({ starters: [], source: 'agent' });
+    expect(resolveConversationStarters({ agentStarters: [] })).toEqual({
+      starters: [],
+      source: 'agent',
+    });
   });
 
   it('trims labels', () => {
-    expect(resolveConversationStarters({ agentStarters: labels('  a  ', 'b') })).toEqual(
+    expect(resolveConversationStarters({ agentStarters: labels('  a  ', 'b') }).starters).toEqual(
       labels('a', 'b')
     );
   });
 
   it('drops starters without a label and repeated labels, keeping the first', () => {
     expect(
-      resolveConversationStarters({ agentStarters: labels('a', '', '   ', 'a', 'b') })
+      resolveConversationStarters({ agentStarters: labels('a', '', '   ', 'a', 'b') }).starters
     ).toEqual(labels('a', 'b'));
   });
 
@@ -40,7 +44,7 @@ describe('resolveConversationStarters', () => {
           appStarters: labels('app 1', 'app 2'),
           agentStarters: labels('agent 1', 'agent 2', 'agent 3'),
         })
-      ).toEqual(labels('app 1', 'app 2'));
+      ).toEqual({ starters: labels('app 1', 'app 2'), source: 'app' });
     });
 
     it('does not fill the remaining slots with the starters of the agent', () => {
@@ -48,14 +52,14 @@ describe('resolveConversationStarters', () => {
         resolveConversationStarters({
           appStarters: labels('app 1'),
           agentStarters: labels('agent 1', 'agent 2'),
-        })
+        }).starters
       ).toEqual(labels('app 1'));
     });
 
     it('uses the starters of the agent when the app passes an empty list', () => {
       expect(
         resolveConversationStarters({ appStarters: [], agentStarters: labels('agent 1') })
-      ).toEqual(labels('agent 1'));
+      ).toEqual({ starters: labels('agent 1'), source: 'agent' });
     });
 
     it('uses the starters of the agent when none of the app starters has a label', () => {
@@ -64,7 +68,7 @@ describe('resolveConversationStarters', () => {
           appStarters: labels('', '   '),
           agentStarters: labels('agent 1'),
         })
-      ).toEqual(labels('agent 1'));
+      ).toEqual({ starters: labels('agent 1'), source: 'agent' });
     });
 
     it('trims, deduplicates and caps the starters of the app', () => {
@@ -72,18 +76,21 @@ describe('resolveConversationStarters', () => {
         resolveConversationStarters({
           appStarters: labels(' 1 ', '1', '2', '', '3', '4'),
           agentStarters: labels('agent 1'),
-        })
+        }).starters
       ).toEqual(labels('1', '2', '3'));
     });
 
     it('returns nothing when neither the app nor the agent has starters', () => {
-      expect(resolveConversationStarters({ appStarters: [], agentStarters: [] })).toEqual([]);
+      expect(resolveConversationStarters({ appStarters: [], agentStarters: [] })).toEqual({
+        starters: [],
+        source: 'agent',
+      });
     });
   });
 
   it('keeps at most three starters', () => {
-    expect(resolveConversationStarters({ agentStarters: labels('1', '2', '3', '4', '5') })).toEqual(
-      labels('1', '2', '3')
-    );
+    expect(
+      resolveConversationStarters({ agentStarters: labels('1', '2', '3', '4', '5') }).starters
+    ).toEqual(labels('1', '2', '3'));
   });
 });

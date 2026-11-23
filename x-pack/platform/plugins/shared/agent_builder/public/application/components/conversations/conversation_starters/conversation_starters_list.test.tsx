@@ -69,7 +69,7 @@ describe('ConversationStartersList', () => {
     expect(onSelect).toHaveBeenCalledWith(starter);
   });
 
-  it('tags each card for click telemetry with its position and not its text', () => {
+  it('tags each card for click telemetry with its source and position and not its text', () => {
     render(
       <ConversationStartersList
         starters={[{ label: 'first' }, { label: 'second' }]}
@@ -82,9 +82,25 @@ describe('ConversationStartersList', () => {
 
     expect(first).toHaveAttribute('data-ebt-action', 'conversation_starter_click');
     expect(first).toHaveAttribute('data-ebt-element', 'agentBuilder.pageContent');
-    expect(first).toHaveAttribute('data-ebt-detail', '1');
-    expect(second).toHaveAttribute('data-ebt-detail', '2');
+    expect(first).toHaveAttribute('data-ebt-detail', 'agent:1');
+    expect(second).toHaveAttribute('data-ebt-detail', 'agent:2');
     expect(second.getAttribute('data-ebt-detail')).not.toContain('second');
+  });
+
+  it('reports starters of the app as such', () => {
+    render(
+      <ConversationStartersList
+        starters={[{ label: 'first' }, { label: 'second' }]}
+        onSelect={jest.fn()}
+        source="app"
+      />,
+      { wrapper }
+    );
+
+    const [first, second] = screen.getAllByTestId('agentBuilderConversationStarter');
+
+    expect(first).toHaveAttribute('data-ebt-detail', 'app:1');
+    expect(second).toHaveAttribute('data-ebt-detail', 'app:2');
   });
 
   it('reports clicks in the flyout under the flyout element', () => {

@@ -179,11 +179,12 @@ export const NewConversationPrompt: React.FC<{}> = () => {
   const wrapAndCenter = !fitsOnOneLine;
   const [isInputUploading, setIsInputUploading] = useState(false);
   const takeInputDraftRef = useRef<TakeInputDraft | null>(null);
-  const { starters, onSelect, isDisabled } = useConversationStarters({
+  const { starters, source, onSelect, isDisabled } = useConversationStarters({
     isInputUploading,
     takeInputDraftRef,
   });
   const hasStarters = starters.length > 0;
+  const shouldGreetingGrow = isEmbeddedContext && !hasStarters;
 
   const greeting = greetingMessage ?? (
     <>
@@ -214,7 +215,7 @@ export const NewConversationPrompt: React.FC<{}> = () => {
       css={conversationElementWidthStyles}
       data-test-subj="agentBuilderWelcomePage"
     >
-      <EuiFlexItem grow={isEmbeddedContext} css={centerFlexItemStyles}>
+      <EuiFlexItem grow={shouldGreetingGrow} css={centerFlexItemStyles}>
         <EuiTitle size="m">
           <h2 ref={setHeadingEl} css={greetingHeadingStyles}>
             {greeting}
@@ -245,6 +246,7 @@ export const NewConversationPrompt: React.FC<{}> = () => {
         >
           <ConversationStartersList
             starters={starters}
+            source={source}
             onSelect={onSelect}
             isDisabled={isDisabled}
             isStacked={isEmbeddedContext}

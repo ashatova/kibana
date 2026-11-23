@@ -20,6 +20,7 @@ import { i18n } from '@kbn/i18n';
 import { getEbtProps } from '@kbn/ebt-click';
 import type { ConversationStarter } from '@kbn/agent-builder-common';
 import { AGENT_BUILDER_UI_EBT } from '@kbn/agent-builder-common';
+import type { ConversationStartersSource } from './resolve_conversation_starters';
 
 const groupAriaLabel = i18n.translate('xpack.agentBuilder.conversationStarters.groupAriaLabel', {
   defaultMessage: 'Conversation starters',
@@ -46,18 +47,20 @@ const componentStyles = (euiThemeContext: UseEuiTheme) => {
     `,
     content: css`
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: ${euiTheme.size.s};
       text-align: left;
     `,
-    icon: css`
+    // As tall as a line, so the icon sits next to the first line of a label that wraps.
+    iconSlot: css`
+      display: flex;
+      align-items: center;
       flex-shrink: 0;
+      block-size: ${lineHeight};
     `,
     label: css`
       min-inline-size: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow-wrap: anywhere;
     `,
   };
 };
@@ -68,6 +71,8 @@ export interface ConversationStartersListProps {
   isDisabled?: boolean;
   /** Stacks full-width cards in a column, for narrow containers like the flyout. */
   isStacked?: boolean;
+  /** Who defined the starters, reported with the clicks. */
+  source?: ConversationStartersSource;
 }
 
 export const ConversationStartersList: React.FC<ConversationStartersListProps> = ({
@@ -75,6 +80,7 @@ export const ConversationStartersList: React.FC<ConversationStartersListProps> =
   onSelect,
   isDisabled = false,
   isStacked = false,
+  source = 'agent',
 }) => {
   const styles = useEuiMemoizedStyles(componentStyles);
 
@@ -108,11 +114,13 @@ export const ConversationStartersList: React.FC<ConversationStartersListProps> =
                 ? AGENT_BUILDER_UI_EBT.element.flyout
                 : AGENT_BUILDER_UI_EBT.element.pageContent,
               action: AGENT_BUILDER_UI_EBT.action.conversationStarters.CONVERSATION_STARTER_CLICK,
-              detail: `${index + 1}`,
+              detail: `${source}:${index + 1}`,
             })}
           >
             <span css={styles.content}>
-              <EuiIcon type="pivot" size="s" color="subdued" css={styles.icon} aria-hidden />
+              <span css={styles.iconSlot}>
+                <EuiIcon type="pivot" size="s" color="subdued" aria-hidden />
+              </span>
               <span css={styles.label}>{starter.label}</span>
             </span>
           </EuiPanel>
